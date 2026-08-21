@@ -34,6 +34,7 @@ class QQAdminDB:
         "word_ban_time": "禁词禁言时长",
         "spamming_ban_time": "刷屏禁言时长",
         "spamming_count": "刷屏判定消息数",
+        "spamming_interval": "刷屏判定间隔",
     }
 
     REVERSE_FIELD_MAP = {v: k for k, v in FIELD_MAP.items()}

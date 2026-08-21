@@ -137,7 +137,7 @@
       },
       "spamming_count": {
         "description": "刷屏判定消息数",
-        "hint": "同一用户连续发送达到此消息数，且相邻消息间隔均小于 0.5 秒时，判定为刷屏",
+        "hint": "同一用户连续发送达到此消息数，且相邻消息间隔均小于设定值时，判定为刷屏",
         "type": "int",
         "slider": {
           "min": 2,
@@ -145,6 +145,17 @@
           "step": 1
         },
         "default": 3
+      },
+      "spamming_interval": {
+        "description": "刷屏判定间隔（秒）",
+        "hint": "连续消息之间允许的最大间隔；相邻消息间隔小于此值时才计入刷屏",
+        "type": "int",
+        "slider": {
+          "min": 1,
+          "max": 10,
+          "step": 1
+        },
+        "default": 2
       }
     }
   },

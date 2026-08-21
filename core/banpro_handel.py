@@ -15,6 +15,9 @@ from ..utils import get_ats, get_nickname, parse_bool
 DEFAULT_SPAMMING_COUNT = 3
 MIN_SPAMMING_COUNT = 2
 MAX_SPAMMING_COUNT = 20
+DEFAULT_SPAMMING_INTERVAL = 2.0
+MIN_SPAMMING_INTERVAL = 1.0
+MAX_SPAMMING_INTERVAL = 10.0
 
 
 class BanproHandle:
@@ -200,10 +203,22 @@ class BanproHandle:
         except (TypeError, ValueError):
             count = DEFAULT_SPAMMING_COUNT
         count = min(max(count, MIN_SPAMMING_COUNT), MAX_SPAMMING_COUNT)
+
+        configured_interval = await self.db.get(
+            group_id, "spamming_interval", DEFAULT_SPAMMING_INTERVAL
+        )
+        try:
+            max_interval = float(configured_interval)
+        except (TypeError, ValueError):
+            max_interval = DEFAULT_SPAMMING_INTERVAL
+        max_interval = min(
+            max(max_interval, MIN_SPAMMING_INTERVAL), MAX_SPAMMING_INTERVAL
+        )
+
         if len(timestamps) >= count:
             recent = list(timestamps)[-count:]
             intervals = [recent[i + 1] - recent[i] for i in range(count - 1)]
-            if all(interval < self.cfg.spamming_interval for interval in intervals):
+            if all(interval < max_interval for interval in intervals):
                 # 提前写入禁止标记，防止并发重复禁
                 self.last_banned_time[group_id][sender_id] = now
 
