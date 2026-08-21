@@ -12,6 +12,10 @@ from ..config import PluginConfig
 from ..data import QQAdminDB
 from ..utils import get_ats, get_nickname, parse_bool
 
+DEFAULT_SPAMMING_COUNT = 3
+MIN_SPAMMING_COUNT = 2
+MAX_SPAMMING_COUNT = 20
+
 
 class BanproHandle:
     def __init__(self, config: PluginConfig, db: QQAdminDB):
@@ -22,7 +26,7 @@ class BanproHandle:
         )
         self.builtin_ban_words = self.builtin_ban_data["words"]
         self.msg_timestamps: dict[str, dict[str, deque[float]]] = defaultdict(
-            lambda: defaultdict(lambda: deque(maxlen=self.cfg.spamming_count))
+            lambda: defaultdict(lambda: deque(maxlen=MAX_SPAMMING_COUNT))
         )
         self.last_banned_time: dict[str, dict[str, float]] = defaultdict(
             lambda: defaultdict(float)
@@ -157,7 +161,7 @@ class BanproHandle:
         """设置刷屏禁言时长"""
         gid = event.get_group_id()
         if isinstance(time, int):
-            await self.db.set(gid, "word_ban_time", time)
+            await self.db.set(gid, "spamming_ban_time", time)
             msg = (
                 f"本群刷屏禁言时长已设为：{time} 秒"
                 if time > 0
@@ -165,7 +169,7 @@ class BanproHandle:
             )
             await event.send(event.plain_result(msg))
         else:
-            status = await self.db.get(gid, "word_ban_time", 0)
+            status = await self.db.get(gid, "spamming_ban_time", 0)
             await event.send(event.plain_result(f"本群刷屏禁言时长：{status} 秒"))
 
     async def spamming_ban(self, event: AiocqhttpMessageEvent):
@@ -188,7 +192,14 @@ class BanproHandle:
 
         timestamps = self.msg_timestamps[group_id][sender_id]
         timestamps.append(now)
-        count = self.cfg.spamming_count
+        configured_count = await self.db.get(
+            group_id, "spamming_count", DEFAULT_SPAMMING_COUNT
+        )
+        try:
+            count = int(configured_count)
+        except (TypeError, ValueError):
+            count = DEFAULT_SPAMMING_COUNT
+        count = min(max(count, MIN_SPAMMING_COUNT), MAX_SPAMMING_COUNT)
         if len(timestamps) >= count:
             recent = list(timestamps)[-count:]
             intervals = [recent[i + 1] - recent[i] for i in range(count - 1)]

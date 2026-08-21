@@ -134,6 +134,17 @@
           "step": 60
         },
         "default": 0
+      },
+      "spamming_count": {
+        "description": "刷屏判定消息数",
+        "hint": "同一用户连续发送达到此消息数，且相邻消息间隔均小于 0.5 秒时，判定为刷屏",
+        "type": "int",
+        "slider": {
+          "min": 2,
+          "max": 20,
+          "step": 1
+        },
+        "default": 3
       }
     }
   },
