@@ -31,6 +31,9 @@ class BanproHandle:
         self.msg_timestamps: dict[str, dict[str, deque[float]]] = defaultdict(
             lambda: defaultdict(lambda: deque(maxlen=MAX_SPAMMING_COUNT))
         )
+        self.seen_message_ids: dict[str, dict[str, deque[str]]] = defaultdict(
+            lambda: defaultdict(lambda: deque(maxlen=100))
+        )
         self.last_banned_time: dict[str, dict[str, float]] = defaultdict(
             lambda: defaultdict(float)
         )
@@ -193,8 +196,14 @@ class BanproHandle:
         if now - last_time < ban_time:
             return
 
-        timestamps = self.msg_timestamps[group_id][sender_id]
-        timestamps.append(now)
+        message_id = getattr(getattr(event, "message_obj", None), "message_id", None)
+        if message_id is not None:
+            normalized_message_id = str(message_id)
+            seen_ids = self.seen_message_ids[group_id][sender_id]
+            if normalized_message_id in seen_ids:
+                return
+            seen_ids.append(normalized_message_id)
+
         configured_count = await self.db.get(
             group_id, "spamming_count", DEFAULT_SPAMMING_COUNT
         )
@@ -214,6 +223,11 @@ class BanproHandle:
         max_interval = min(
             max(max_interval, MIN_SPAMMING_INTERVAL), MAX_SPAMMING_INTERVAL
         )
+
+        timestamps = self.msg_timestamps[group_id][sender_id]
+        if timestamps and now - timestamps[-1] >= max_interval:
+            timestamps.clear()
+        timestamps.append(now)
 
         if len(timestamps) >= count:
             recent = list(timestamps)[-count:]
